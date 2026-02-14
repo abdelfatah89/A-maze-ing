@@ -1,6 +1,5 @@
 from cell import Cell
 from typing import List, Tuple
-import tkinter as tk
 import random
 
 
@@ -52,18 +51,18 @@ class Maze():
 
     def get_neighbors(self, cell: Cell):
         neighbors = []
-        directions = [
-            ('top', 0, -1),
-            ('right', 1, 0),
-            ('bottom', 0, 1),
-            ('left', -1, 0)
-        ]
+        directions = {
+            'top': (0, -1),
+            'right': (1, 0),
+            'bottom': (0, 1),
+            'left': (-1, 0)
+        }
 
-        for direction, dx, dy in directions:
+        for dx, dy in directions.values():
             dx, dy = cell.x + dx, cell.y + dy
             neighbor = self.get_cell(dx, dy)
             if neighbor:
-                neighbors.append((direction, neighbor))
+                neighbors.append(neighbor)
 
         return neighbors
 
@@ -77,13 +76,13 @@ class Maze():
             self.current_cell = self.stack[-1]
             neighbors = self.get_neighbors(self.current_cell)
             unvisited_neighbors = [
-                (direction, neighbor) 
-                for direction, neighbor in neighbors 
+                neighbor
+                for neighbor in neighbors 
                 if not neighbor.visited
             ]
 
             if unvisited_neighbors:
-                direction, next_cell = random.choice(unvisited_neighbors)
+                next_cell = random.choice(unvisited_neighbors)
                 self.remove_walls(self.current_cell, next_cell)
                 next_cell.visited = True
                 self.stack.append(next_cell)
@@ -104,28 +103,7 @@ class Maze():
         except Exception as e:
             print("Error DFS_generator:", e)
 
-    def get_solution_path(self) -> List[Cell]:
-        path = []
-        current = self.cells[-1]
-
-        while current:
-            path.append(current)
-            current = current.parent
-
-        path.reverse()
-        return path
-
     def generate(self):
-        for row in self.cells:
-            for cell in row:
-                cell.visited = False
-                cell.walls = {
-                    'top': True,
-                    'right': True,
-                    'bottom': True,
-                    'left': True
-                    }
-
         if not self.perfect:
             self.add_loops()
         if self.width >= 10 and self.height >= 6:
@@ -183,49 +161,43 @@ class Maze():
         self.has_42 = len(pattern_cells) > 0
         if self.has_42:
             print("Added '42' pattern to the maze")
+            
         return pattern_cells
 
     def add_loops(self, loop_probability: float = 0.1) -> None:
-        import random
-        
-        for y in range(self.height):
-            for x in range(self.width):
-                cell = self.cells[y][x]
+        for column in self.cells:
+            for cell in column:       
                 if self.cells42 and cell in self.cells42:
                     continue
-                
                 # Randomly remove walls to adjacent cells
                 if random.random() < loop_probability:
                     # Check right neighbor
-                    if x + 1 < self.width and random.random() < 0.5:
+                    if cell.x + 1 < self.width:
                         cell.walls['right'] = False
-                        self.cells[y][x + 1].walls['left'] = False
+                        self.cells[cell.y][cell.x + 1].walls['left'] = False
+                        continue
                 
                 if random.random() < loop_probability:
                     # Check bottom neighbor
-                    if y + 1 < self.height and random.random() < 0.5:
+                    if cell.y + 1 < self.height:
                         cell.walls['bottom'] = False
-                        self.cells[y + 1][x].walls['top'] = False
+                        self.cells[cell.y + 1][cell.x].walls['top'] = False
 
     def find_shortest_path(self) -> List[Tuple[int, int]]:
         """Find shortest path from entry
         to exit using BFS with animation."""
         from collections import deque
-        
+
         start = self.cells[self.entry[1]][self.entry[0]]
         end = self.cells[self.exit[1]][self.exit[0]]
 
         # BFS setup
         queue = deque([start])
         came_from = {start: None}
-        
+
         while queue:
-            
+
             current = queue.popleft()
-            # current.draw_current_cell(canvas, color='lightblue')
-            # current.draw_walls(canvas)
-            # canvas.update()
-            # canvas.after(50)  # 100ms delay
             if current == end:
                 break
 
@@ -242,14 +214,13 @@ class Maze():
                 if not current.walls[direction]:
                     nx, ny = current.x + dx, current.y + dy
                     neighbor = self.get_cell(nx, ny)
-                    
+
                     if neighbor and neighbor not in came_from:
-                        if self.has_42 and neighbor in self.cells42:
-                            continue
                         came_from[neighbor] = current
                         queue.append(neighbor)
         
         # Reconstruct path
+        print([(c.x, c.y) for c in came_from])
         if end not in came_from:
             return []  # No path found
         
