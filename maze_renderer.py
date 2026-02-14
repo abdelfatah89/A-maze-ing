@@ -29,25 +29,33 @@ class MazeRenderer():
         self.canvas.pack()
 
     def draw_42(self):
-        if self.maze.has_42:
-            for cell in self.maze.cells42:
-                cell.draw_current_cell(self.canvas, color='black')
-                cell.draw_walls(self.canvas)
+        try:
+            if self.maze.has_42:
+                for cell in self.maze.cells42:
+                    cell.draw_current_cell(self.canvas, color='black')
+                    cell.draw_walls(self.canvas)
+        except Exception as e:
+            print(f"Error drawing 42 pattern: {e}")
 
     def draw(self):
-        color = self.colors[self.current_color_index]
-        self.canvas.delete("all")
-        for row in self.maze.cells:
-            for cell in row:
-                if cell in self.maze.cells42:
-                    continue
-                if cell.visited:
-                    cell.draw_current_cell(self.canvas, color)
-                else:
-                    cell.draw_current_cell(self.canvas, color='white')
-                cell.draw_walls(self.canvas)
+        try:
+            color = self.colors[self.current_color_index]
+            self.canvas.delete("all")
+            for row in self.maze.cells:
+                for cell in row:
+                    if cell in self.maze.cells42:
+                        continue
+                    if cell.visited:
+                        cell.draw_current_cell(self.canvas, color)
+                    elif cell in self.maze.frontier:
+                        cell.draw_current_cell(self.canvas, color='green')
+                    else:
+                        cell.draw_current_cell(self.canvas, color='white')
+                    cell.draw_walls(self.canvas)
 
-        self.maze.current_cell.draw_current_cell(self.canvas, color='salmon')
+            self.maze.current_cell.draw_current_cell(self.canvas, color='salmon')
+        except Exception as e:
+            print(f"Draw error: {e}")
 
     def render_DFS(self):
         try:
@@ -67,91 +75,100 @@ class MazeRenderer():
                 self.draw_42()
                 self.root.update()
         except Exception as e:
-            print("Error:", e)
+            print("Error in render_DFS:", e)
 
     def render(self):
-        if not self.maze.animation:
-            self.maze.generate()
-            self.draw()
-            self.draw_42()
-        elif self.maze.animation and self.maze.algorithm == 'dfs':
-            self.render_DFS()
-        elif self.maze.animation and self.maze.algorithm == 'prim':
-            self.render_PRIM()
+        try:
+            if not self.maze.animation:
+                self.maze.generate()
+                self.draw()
+                self.draw_42()
+            elif self.maze.animation and self.maze.algorithm == 'dfs':
+                self.render_DFS()
+            elif self.maze.animation and self.maze.algorithm == 'prim':
+                self.render_PRIM()
 
-        self.maze.find_shortest_path()
-        self.animate_solution()
-        self.maze.write_to_file()
+            self.maze.find_shortest_path()
+            self.animate_solution()
+            self.maze.write_to_file()
+        except Exception as e:
+            print("Error in render:", e)
 
     def gameloop(self):
         self.root.mainloop()
 
     def animate_solution(self):
         """Animate the solution path with visual feedback."""
-        if not self.maze.solution_path:
-            return
-        if not self.canvas.winfo_exists():
-            return
+        try:
+            if not self.maze.solution_path:
+                return
+            if not self.canvas.winfo_exists():
+                return
 
-        # Initialize animation on first call
-        if self.solution_index == 0:
-            self.solution = self.maze.solution_path.copy()
-        
-        # Draw all solution cells up to current index
-        for i, cell in enumerate(self.solution[:self.solution_index + 1]):
-            color = 'lightgreen' if i < self.solution_index else 'red'
-            cell.draw_current_cell(self.canvas, color=color)
-            cell.draw_walls(self.canvas)
-        
-        self.solution_index += 1
-        
-        # Continue animation or reset
-        if self.solution_index < len(self.solution):
-            self.root.after(100, self.animate_solution)
-        else:
-            self.solution_animated = True
-            self.path_shown = True
-            self.toggle_path()
+            # Initialize animation on first call
+            if self.solution_index == 0:
+                self.solution = self.maze.solution_path.copy()
+            
+            # Draw all solution cells up to current index
+            for i, cell in enumerate(self.solution[:self.solution_index + 1]):
+                color = 'lightgreen' if i < self.solution_index else 'red'
+                cell.draw_current_cell(self.canvas, color=color)
+                cell.draw_walls(self.canvas)
+            
+            self.solution_index += 1
+            
+            # Continue animation or reset
+            if self.solution_index < len(self.solution):
+                self.root.after(100, self.animate_solution)
+            else:
+                self.solution_animated = True
+                self.path_shown = True
+                self.toggle_path()
+        except Exception as e:
+            print(f"Animate solution error: {e}")
 
     def regenerate(self):
         """Regenerate the maze with proper cleanup and reset."""
         try:
+            if not self.canvas.winfo_exists():
+                return
+
             self.canvas.delete("all")
+
+            self.maze = Maze(self.maze.height,
+                            self.maze.width,
+                            self.maze.entry,
+                            self.maze.exit,
+                            self.maze.perfect,
+                            self.maze.algorithm,
+                            self.maze.animation,
+                            self.maze.seed)
+            self.solution_animated = False
+            self.solution_index = 0
+            self.solution = []
+            self.maze.solution_path = None
+            
+            # 5. Find solution path
+            self.solution = self.maze.find_shortest_path()
+            
+            # 6. Render (ensure canvas exists first)
+            if self.canvas.winfo_exists():
+                self.render()
+                self.toggle_path()
         except Exception as e:
             print(f"Canvas error: {e}")
             return
 
-        self.maze = Maze(self.maze.height,
-                         self.maze.width,
-                         self.maze.entry,
-                         self.maze.exit,
-                         self.maze.perfect,
-                         self.maze.algorithm,
-                         self.maze.animation,
-                         self.maze.seed)
-        self.solution_animated = False
-        self.solution_index = 0
-        self.solution = []
-        self.maze.solution_path = None
-        
-        # 5. Find solution path
-        self.solution = self.maze.find_shortest_path()
-        
-        # 6. Render (ensure canvas exists first)
-        if self.canvas.winfo_exists():
-            self.render()
-            self.toggle_path()
-
     def toggle_path(self):
         """Toggle solution path visibility."""
-        if not self.maze.solution_path:
-            print("No solution path found!")
-            return
-        
-        if not self.canvas.winfo_exists():
-            return
-
         try:
+            if not self.maze.solution_path:
+                print("No solution path found!")
+                return
+            
+            if not self.canvas.winfo_exists():
+                return
+
             # Only show path if animation is complete
             if self.path_shown and not self.solution_animated:
                 return
@@ -166,10 +183,10 @@ class MazeRenderer():
 
     def change_color(self):
         """Change maze cell colors."""
-        if not self.canvas.winfo_exists():
-            return
-
         try:
+            if not self.canvas.winfo_exists():
+                return
+
             self.current_color_index = (self.current_color_index + 1) % len(self.colors)
             color = self.colors[self.current_color_index]
             for row in self.maze.cells:
@@ -185,5 +202,8 @@ class MazeRenderer():
             print(f"Change color error: {e}")
 
     def quit(self):
-        self.root.quit()
-        self.root.destroy()
+        try:
+            self.root.quit()
+            self.root.destroy()
+        except Exception as e:
+            print(f"Quit error: {e}")

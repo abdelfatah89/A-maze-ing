@@ -29,6 +29,8 @@ class Maze():
         self.generated = False
         self.cells42 = self.add_42()
         self.has_42 = False
+        self.started = False
+        self.frontier = []
         self.stack = []
         self.solution_path: List[Cell] = None
 
@@ -102,6 +104,41 @@ class Maze():
                 self.DFS_step()
         except Exception as e:
             print("Error DFS_generator:", e)
+
+    def PRIM_step(self):
+        if not self.started:
+            self.current_cell = self.cells[self.entry[1]][self.entry[0]]
+            self.current_cell.visited = True
+            self.frontier = self.get_neighbors(self.current_cell)
+            self.started = True
+            return
+        
+        if not self.frontier:
+            return
+        
+        self.current_cell = random.choice(self.frontier)
+        self.current_cell.visited = True
+        self.frontier.remove(self.current_cell)
+
+        visited_neighbors = [n for n in self.get_neighbors(self.current_cell)
+                               if n.visited]
+        
+        unvisited_neighbors = [n for n in self.get_neighbors(self.current_cell)
+                               if not n.visited]
+        
+        if not unvisited_neighbors:
+            return
+        
+        self.frontier += [n for n in unvisited_neighbors if n not in self.frontier]
+        
+        self.remove_walls(self.current_cell, random.choice(visited_neighbors))
+
+
+    def PRIM_generator(self):
+        if not self.started:
+            self.PRIM_step()
+        while self.frontier:
+            self.PRIM_step()
 
     def generate(self):
         if not self.perfect:
@@ -220,7 +257,6 @@ class Maze():
                         queue.append(neighbor)
         
         # Reconstruct path
-        print([(c.x, c.y) for c in came_from])
         if end not in came_from:
             return []  # No path found
         
