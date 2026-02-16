@@ -1,7 +1,5 @@
 import sys
-from config_parser import MazeConfig
-from maze import Maze
-from maze_renderer import MazeRenderer
+from mazegen import MazeConfig, Maze, MazeRenderer
 
 
 if __name__ == '__main__':
@@ -16,7 +14,8 @@ if __name__ == '__main__':
                 config.exit_,
                 config.perfect,
                 config.algorithm,
-                config.animation)
+                config.animation,
+                config.seed)
     render = MazeRenderer(maze)
     render.render()
     render.gameloop()

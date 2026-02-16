@@ -1,40 +1,44 @@
-from cell import Cell
-from typing import List, Tuple
+from .cell import Cell
+from typing import Dict, List, Tuple, Optional
 import random
 
 
 class Maze():
-    def __init__(self, height:int, width:int,
-                 entry:Tuple[int, int], exit_:Tuple[int, int],
-                 perfect:bool, algorithm:str,
-                 animation: str, seed:int=None) -> None:
+    def __init__(self, height: int, width: int,
+                 entry: Tuple[int, int], exit_: Tuple[int, int],
+                 perfect: bool, algorithm: str,
+                 animation: bool, seed: Optional[int]) -> None:
+        from .algorithm import DfsAlgorithm, PrimAlgorithm
+        from .algorithm import HakAlgorithm, MazeAlgorithm
         self.height = height
         self.width = width
         self.entry = entry
         self.exit = exit_ if exit_ else (width - 1, height - 1)
         self.perfect = perfect
-        self.algorithm = algorithm
-        self.animation = animation
-        self.seed = seed
-        if self.seed:
-            random.seed(self.seed)
-
-        self.current_cell = None
         self.cells: List[List[Cell]] = [
             [Cell(x, y) for x in range(self.width)]
             for y in range(self.height)]
 
-        self.finished = False
+        if algorithm == 'dfs':
+            self.algorithm: MazeAlgorithm = DfsAlgorithm(self)
+        elif algorithm == 'prim':
+            self.algorithm = PrimAlgorithm(self)
+        elif algorithm == 'hak':
+            self.algorithm = HakAlgorithm(self)
 
-        self.generated = False
+        self.animation = animation
+        self.seed = seed
+        if self.seed is not None:
+            random.seed(self.seed)
+
         self.cells42 = self.add_42()
         self.has_42 = False
-        self.started = False
-        self.frontier = []
-        self.stack = []
-        self.solution_path: List[Cell] = None
+        self.solution_path: List[Cell] = []
 
-    def remove_walls(self, current: Cell, next: Cell) -> None:
+    def remove_walls(self, current: Optional[Cell],
+                     next: Optional[Cell]) -> None:
+        if current is None or next is None:
+            return
         dx = current.x - next.x
         if dx == 1:
             current.walls['left'] = False
@@ -51,7 +55,9 @@ class Maze():
             current.walls['bottom'] = False
             next.walls['top'] = False
 
-    def get_neighbors(self, cell: Cell):
+    def get_neighbors(self, cell: Optional[Cell]) -> List[Cell]:
+        if not cell:
+            return []
         neighbors = []
         directions = {
             'top': (0, -1),
@@ -68,96 +74,12 @@ class Maze():
 
         return neighbors
 
-    def get_cell(self, x:int, y:int):
+    def get_cell(self, x: int, y: int) -> Cell | None:
         if 0 <= x < self.width and 0 <= y < self.height:
             return self.cells[y][x]
         return None
 
-    def DFS_step(self):
-        try:
-            self.current_cell = self.stack[-1]
-            neighbors = self.get_neighbors(self.current_cell)
-            unvisited_neighbors = [
-                neighbor
-                for neighbor in neighbors 
-                if not neighbor.visited
-            ]
-
-            if unvisited_neighbors:
-                next_cell = random.choice(unvisited_neighbors)
-                self.remove_walls(self.current_cell, next_cell)
-                next_cell.visited = True
-                self.stack.append(next_cell)
-            else:
-                self.stack.pop()
-        except Exception as e:
-            print("Error DFS_generator:", e)
-
-    def DFS_generator(self):
-        try:
-            start_x, start_y = self.entry
-            start_cell = self.cells[start_y][start_x]
-            self.stack = [start_cell]
-            start_cell.visited = True
-
-            while self.stack:
-                self.DFS_step()
-        except Exception as e:
-            print("Error DFS_generator:", e)
-
-    def PRIM_step(self):
-        if not self.started:
-            self.current_cell = self.cells[self.entry[1]][self.entry[0]]
-            self.current_cell.visited = True
-            self.frontier = self.get_neighbors(self.current_cell)
-            self.started = True
-            return
-        
-        if not self.frontier:
-            return
-        
-        self.current_cell = random.choice(self.frontier)
-        self.current_cell.visited = True
-        self.frontier.remove(self.current_cell)
-
-        visited_neighbors = [n for n in self.get_neighbors(self.current_cell)
-                               if n.visited]
-        
-        unvisited_neighbors = [n for n in self.get_neighbors(self.current_cell)
-                               if not n.visited]
-        
-        if not unvisited_neighbors:
-            return
-        
-        self.frontier += [n for n in unvisited_neighbors if n not in self.frontier]
-        
-        self.remove_walls(self.current_cell, random.choice(visited_neighbors))
-
-
-    def PRIM_generator(self):
-        if not self.started:
-            self.PRIM_step()
-        while self.frontier:
-            self.PRIM_step()
-
-    def generate(self):
-        if not self.perfect:
-            self.add_loops()
-        if self.width >= 10 and self.height >= 6:
-            self.add_42()
-
-        if self.algorithm == 'dfs':
-            self.DFS_generator()
-        elif self.algorithm == 'prim':
-            self.PRIM_generator()
-
-        else:
-            self.has_42 = False
-            self.cells42 = []
-            print(f"Maze too small ({self.width}x{self.height}). "
-                f"Skipping 42 pattern.")
-
-    def add_42(self):
+    def add_42(self) -> List[Cell]:
         """Add a '42' pattern of completely closed cells."""
         # Pattern for '4'
         pattern_4 = [
@@ -178,7 +100,7 @@ class Maze():
         if self.width < 10 or self.height < 6:
             print("Maze is too small to add '42' pattern")
             self.has_42 = False
-            return
+            return []
 
         offset_x = (self.width - 10) // 2
         offset_y = (self.height - 6) // 2
@@ -198,12 +120,12 @@ class Maze():
         self.has_42 = len(pattern_cells) > 0
         if self.has_42:
             print("Added '42' pattern to the maze")
-            
+
         return pattern_cells
 
     def add_loops(self, loop_probability: float = 0.1) -> None:
         for column in self.cells:
-            for cell in column:       
+            for cell in column:
                 if self.cells42 and cell in self.cells42:
                     continue
                 # Randomly remove walls to adjacent cells
@@ -213,14 +135,14 @@ class Maze():
                         cell.walls['right'] = False
                         self.cells[cell.y][cell.x + 1].walls['left'] = False
                         continue
-                
+
                 if random.random() < loop_probability:
                     # Check bottom neighbor
                     if cell.y + 1 < self.height:
                         cell.walls['bottom'] = False
                         self.cells[cell.y + 1][cell.x].walls['top'] = False
 
-    def find_shortest_path(self) -> List[Tuple[int, int]]:
+    def find_shortest_path(self) -> List[Tuple[int, int]] | None:
         """Find shortest path from entry
         to exit using BFS with animation."""
         from collections import deque
@@ -228,9 +150,10 @@ class Maze():
         start = self.cells[self.entry[1]][self.entry[0]]
         end = self.cells[self.exit[1]][self.exit[0]]
 
+        current: Cell | None
         # BFS setup
         queue = deque([start])
-        came_from = {start: None}
+        came_from: Dict[Cell, Cell | None] = {start: None}
 
         while queue:
 
@@ -255,33 +178,30 @@ class Maze():
                     if neighbor and neighbor not in came_from:
                         came_from[neighbor] = current
                         queue.append(neighbor)
-        
+
         # Reconstruct path
         if end not in came_from:
             return []  # No path found
-        
-        path = []
-        current = end
-        
-        while current is not None:
-            path.insert(0, (current.x, current.y))
-            current = came_from[current]
-        
-        self.solution_path = [self.cells[y][x]
-                              for x, y in path]
-        return path
 
-    def path_to_directions(self):
+        current = end
+
+        while current is not None:
+            self.solution_path.insert(0, self.cells[current.y][current.x])
+            current = came_from[current]
+
+        return None
+
+    def path_to_directions(self) -> str:
         if not self.solution_path:
-            return []
-        
+            return ""
+
         directions = []
         for i in range(1, len(self.solution_path)):
             current = self.solution_path[i - 1]
             next_cell = self.solution_path[i]
             dx = next_cell.x - current.x
             dy = next_cell.y - current.y
-            
+
             if dx == 1 and dy == 0:
                 directions.append('E')
             elif dx == -1 and dy == 0:
@@ -292,10 +212,10 @@ class Maze():
                 directions.append('N')
             else:
                 print("Invalid path step")
-        
+
         return ''.join(directions)
 
-    def write_to_file(self, filename='output_maze.txt'):
+    def write_to_file(self, filename: str = 'output_maze.txt') -> None:
         with open(filename, 'w') as f:
             for row in self.cells:
                 row_string = ''

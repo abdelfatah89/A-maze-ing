@@ -1,4 +1,5 @@
 import tkinter as tk
+from typing import Tuple
 
 
 class Cell:
@@ -19,6 +20,9 @@ class Cell:
 
     def draw_current_cell(self, canvas: tk.Canvas,
                           color: str = 'lightgrey') -> None:
+        if not canvas.winfo_exists():
+            return
+
         canvas.create_rectangle(
             self.padding + self.x * self.cell_size,
             self.padding + self.y * self.cell_size,
@@ -27,8 +31,9 @@ class Cell:
             fill=color,
             outline=''
         )
+        self.draw_walls(canvas)
 
-    def get_wall_coordinates(self, position):
+    def get_wall_coordinates(self, position: str) -> Tuple[int, int, int, int]:
         x = self.padding + (self.x * self.cell_size)
         y = self.padding + (self.y * self.cell_size)
 
@@ -39,13 +44,15 @@ class Cell:
                     x + self.cell_size, y + self.cell_size)
         elif position == 'left':
             return (x, y, x, y + self.cell_size)
-        elif position == 'right':
+        else:
             return (x + self.cell_size, y,
                     x + self.cell_size, y + self.cell_size)
 
-    def draw_walls(self, canvas: tk.Canvas):
+    def draw_walls(self, canvas: tk.Canvas) -> None:
+        if not canvas.winfo_exists():
+            return
+
         for key in self.walls.keys():
             if self.walls[key]:
                 coordinates = self.get_wall_coordinates(key)
                 canvas.create_line(*coordinates, width=3)
-

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Optional
 import sys
 
 
@@ -13,10 +13,10 @@ class MazeConfig:
         self.output_file = "maze.txt"
         self.algorithm = "dfs"
         self.animation = False
-        self.seed = None
+        self.seed: Optional[int] = None
         self.parse_()
 
-    def parse_(self) -> Dict[str, Any]:
+    def parse_(self) -> None:
         try:
             config: Dict[str, Any] = {}
             with open(self.config_file, 'r') as file:
@@ -96,8 +96,10 @@ class MazeConfig:
                 raise ValueError("OUTPUT_FILE cannot be empty")
 
             if "ALGORITHM" in config:
-                if config["ALGORITHM"].lower() not in ["dfs", "prim"]:
-                    raise ValueError("ALGORITHM must be 'DFS' or 'Prim'")
+                if config["ALGORITHM"].lower() not in ["dfs", "prim", "hak"]:
+                    raise ValueError(
+                        "ALGORITHM must be 'DFS' or 'Prim'"
+                        " or 'Hunt and Kill (HAK)'")
                 self.algorithm = config["ALGORITHM"].lower()
 
             if 'ANIMATION' not in config:
@@ -109,8 +111,18 @@ class MazeConfig:
 
             if 'SEED' in config:
                 if not config['SEED'].isdigit():
-                    raise ValueError("SEED must be an integer")
-                self.seed = int(config['SEED'])
+                    if config['SEED'].lower() == 'none':
+                        self.seed = None
+                    elif config['SEED'] == '':
+                        self.seed = None
+                    else:
+                        raise ValueError(
+                            "SEED must be a non-negative integer or 'None'")
+                else:
+                    seed_value = int(config['SEED'])
+                    if seed_value < 0:
+                        raise ValueError("SEED must be a non-negative integer")
+                    self.seed = seed_value
 
             print("✓ Configuration loaded successfully"
                   f" from '{self.config_file}'")
