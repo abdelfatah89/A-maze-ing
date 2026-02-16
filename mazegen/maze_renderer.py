@@ -33,6 +33,19 @@ class MazeRenderer():
                                 height=canvas_height,
                                 bg='white')
         self.canvas.pack()
+
+        # Info label for controls (bottom)
+        self.controls_label = tk.Label(
+            self.root,
+            text=(
+                "Controls:\n"
+                "  1 – Regenerate   |   2 – Toggle Path  "
+                "|  3 – Change Color |   4 – Quit"
+                ),
+            font=("Arial", 12, "bold"),
+            anchor="center"
+        )
+
         self.window_opened = True
         self.root.protocol("WM_DELETE_WINDOW", self.on_window_close)
 
