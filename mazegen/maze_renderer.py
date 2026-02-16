@@ -100,10 +100,10 @@ class MazeRenderer():
         except Exception as e:
             print(f"Draw error: {e}")
 
-    def draw_entry_exit(self):
+    def draw_entry_exit(self) -> None:
         entry_cell = self.maze.cells[self.maze.entry[1]][self.maze.entry[0]]
         exit_cell = self.maze.cells[self.maze.exit[1]][self.maze.exit[0]]
-        
+
         entry_cell.draw_current_cell(self.canvas, color='#0090FF')
         exit_cell.draw_current_cell(self.canvas, color='red')
 
