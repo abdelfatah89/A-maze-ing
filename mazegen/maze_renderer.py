@@ -45,6 +45,7 @@ class MazeRenderer():
             font=("Arial", 12, "bold"),
             anchor="center"
         )
+        self.controls_label.pack(side="bottom", pady=4)
 
         self.window_opened = True
         self.root.protocol("WM_DELETE_WINDOW", self.on_window_close)
@@ -92,11 +93,19 @@ class MazeRenderer():
             if self.maze.algorithm.current_cell is not None:
                 self.maze.algorithm.current_cell.draw_current_cell(
                     self.canvas, color='salmon')
+            self.draw_entry_exit()
 
         except tk.TclError:
             self.window_opened = False
         except Exception as e:
             print(f"Draw error: {e}")
+
+    def draw_entry_exit(self):
+        entry_cell = self.maze.cells[self.maze.entry[1]][self.maze.entry[0]]
+        exit_cell = self.maze.cells[self.maze.exit[1]][self.maze.exit[0]]
+        
+        entry_cell.draw_current_cell(self.canvas, color='#0090FF')
+        exit_cell.draw_current_cell(self.canvas, color='red')
 
     def maze_animation(self) -> None:
         while True:
@@ -158,8 +167,9 @@ class MazeRenderer():
 
             # Draw all solution cells up to current index
             for i, cell in enumerate(self.solution[:self.solution_index + 1]):
-                color = 'lightgreen' if i < self.solution_index else 'red'
+                color = '#7DD65C' if i < self.solution_index else 'orange'
                 cell.draw_current_cell(self.canvas, color=color)
+                self.draw_entry_exit()
 
             self.solution_index += 1
 
@@ -230,8 +240,9 @@ class MazeRenderer():
             color = self.colors[self.current_color_index]
             for c in self.maze.solution_path:
                 c.draw_current_cell(self.canvas,
-                                    color='lightgreen'
+                                    color='#7DD65C'
                                     if self.path_shown else color)
+            self.draw_entry_exit()
             self.path_shown = not self.path_shown
         except tk.TclError:
             self.window_opened = False
