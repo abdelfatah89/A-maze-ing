@@ -127,8 +127,9 @@ class MazeRenderer():
                 self.maze_animation()
 
             if self.maze.algorithm.current_cell is not None:
+                color = self.colors[self.current_color_index]
                 self.maze.algorithm.current_cell.draw_current_cell(
-                    self.canvas, color='lightgray')
+                    self.canvas, color)
             self.maze.find_shortest_path()
             self.animate_solution()
             self.maze.write_to_file()
