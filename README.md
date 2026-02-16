@@ -129,6 +129,8 @@ ALGORITHM=your_name
 
 - The project is packaged as `mazegen`
 - Optional dev tools in `pyproject.toml`: `pytest`, `mypy`, `flake8`
+- A classic packaging entry point exists in [setup.py](setup.py)
+	(for sdist/wheel builds or older tooling)
 
 \#\# Running with Makefile (optional)
 
